@@ -13,6 +13,7 @@ namespace BreakernoidsGL
     public class Paddle : GameObject
     {
         public float speed = 500f;
+        public bool isBig = false;
 
         public Paddle (Game myGame) :
             base (myGame)
@@ -34,7 +35,30 @@ namespace BreakernoidsGL
 
             position.X = MathHelper.Clamp(position.X, 32 + texture.Width / 2, 992 - texture.Width / 2);
 
+            if (isBig)
+            {
+                //textureName = "paddle_long";
+            }
+            else
+            {
+                //textureName = "paddle";
+            }
+
             base.Update(deltaTime);
+        }
+
+        public void Swap(bool swap)
+        {
+            if (swap)
+            {
+                textureName = "paddle_long";
+                this.LoadContent();
+            }
+            else
+            {
+                textureName = "paddle";
+                this.LoadContent();
+            }
         }
 
     }

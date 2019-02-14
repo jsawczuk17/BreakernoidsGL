@@ -24,6 +24,8 @@ namespace BreakernoidsGL
         int hack = 0;
         List<Block> blocks = new List<Block>();
         List<PowerUp> powerUps = new List<PowerUp>();
+        List<Ball> balls = new List<Ball>();
+        
 
 
 
@@ -34,13 +36,18 @@ namespace BreakernoidsGL
             {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
             {2,2,2,2,2,2,2,2,2,2,2,2,2,2,2},
             {3,3,3,3,3,3,3,3,3,3,3,3,3,3,3},
-            {4,4,4,4,4,4,4,4,5,5,5,5,5,5,5},
+            {4,4,4,4,4,4,4,4,4,4,4,4,4,4,4},
         };
 
         SoundEffect bounceSound, hitSound, deathSound, powerSound;
 
         Random random = new Random();
         Double prob = 0.2;
+        public float preX;
+        public float postX;
+        public float diff;
+        public bool ballCaught = false;
+        public bool paddleBig = false;
 
         public Game1()
         {
@@ -79,9 +86,10 @@ namespace BreakernoidsGL
             paddle.LoadContent();
             paddle.position = new Vector2(512, 740);
 
-            ball = new Ball(this);
-            ball.LoadContent();
-            ball.position = new Vector2(512, paddle.position.Y - ball.Height - paddle.Height);
+            SpawnBall();
+            //ball = new Ball(this);
+            //ball.LoadContent();
+            //ball.position = new Vector2(512, paddle.position.Y - ball.Height - paddle.Height);
 
             for (int i = 0; i < blockLayout.GetLength(1); i++)
             {
@@ -123,25 +131,65 @@ namespace BreakernoidsGL
 
             // TODO: Add your update logic here
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
-
+             
+            preX = paddle.position.X;
             paddle.Update(deltaTime);
-            ball.Update(deltaTime);
+            postX = paddle.position.X;
 
-            if (hack > 0)
+            foreach (Ball g in balls)
+            {
+                g.Update(deltaTime);
+
+                if (g.caught)
+                {
+                    g.position.X += postX - preX;
+                }
+            }
+
+            DeleteBalls();
+
+
+
+           // ball.Update(deltaTime);
+
+            /*if (hack > 0)
             {
                 hack -= 1;
-            }
+            }*/
 
             foreach (PowerUp p in powerUps)
             {
                 p.Update(deltaTime);
             }
 
+            KeyboardState keyState = Keyboard.GetState();
+            //if (keyState.IsKeyDown(Keys.Space))
+            //{
+                //ballCaught = false;
+                //ball.caught = false;
 
-            CheckCollisions();
+            //}
+            foreach (Ball g in balls)
+            {
+                
+                CheckCollisions(g); if (keyState.IsKeyDown(Keys.Space))
+                {
+                    ballCaught = false;
+                    g.caught = false;
+
+                }
+
+            }
+            
             CheckForPowerUps();
             DestroyPowerUp();
-            
+
+            if (balls.Count == 0)
+            {
+                LoseLife();
+            }
+
+
             base.Update(gameTime);
         }
 
@@ -160,7 +208,12 @@ namespace BreakernoidsGL
             //Draw all sprites here
             spriteBatch.Draw(bgTexture, new Vector2(0, 0), Color.White);
             paddle.Draw(spriteBatch);
-            ball.Draw(spriteBatch);
+            //ball.Draw(spriteBatch);
+
+            foreach (Ball g in balls)
+            {
+                g.Draw(spriteBatch);
+            }
 
             foreach (Block b in blocks)
             {
@@ -178,14 +231,14 @@ namespace BreakernoidsGL
             base.Draw(gameTime);
         }
 
-        protected void CheckCollisions()
+        protected void CheckCollisions(Ball thisBall)
         {
-            float radius = ball.Width / 2;
+            float radius = thisBall.Width / 2;
 
-            if (hack == 0 && (ball.position.X > (paddle.position.X - radius - paddle.Width / 2)) &&
-(ball.position.X < (paddle.position.X + radius + paddle.Width / 2)) &&
-(ball.position.Y < paddle.position.Y) &&
-(ball.position.Y > (paddle.position.Y - radius - paddle.Height / 2)))
+            if (hack == 0 && (thisBall.position.X > (paddle.position.X - radius - paddle.Width / 2)) &&
+(thisBall.position.X < (paddle.position.X + radius + paddle.Width / 2)) &&
+(thisBall.position.Y < paddle.position.Y) &&
+(thisBall.position.Y > (paddle.position.Y - radius - paddle.Height / 2)))
             {
                 // Reflect based on which part of the paddle is hit
 
@@ -195,7 +248,7 @@ namespace BreakernoidsGL
                 // Distance from the leftmost to rightmost part of the paddle
                 float dist = paddle.Width + (radius * 2);
                 // Where within this distance the ball is at
-                float ballLocation = ball.position.X -
+                float ballLocation = thisBall.position.X -
                     (paddle.position.X - radius - paddle.Width / 2);
                 // Percent between leftmost and rightmost part of paddle
                 float pct = ballLocation / dist;
@@ -208,19 +261,26 @@ namespace BreakernoidsGL
                 {
                     normal = new Vector2(0.196f, -0.981f);
                 }
-
-                ball.direction = Vector2.Reflect(ball.direction, normal);
-                hack = 20;
-                bounceSound.Play();
+                if (ballCaught)
+                {
+                    thisBall.caught = true;
+                }
+                else
+                {
+                    bounceSound.Play();
+                }
+                thisBall.direction = Vector2.Reflect(thisBall.direction, normal);
+                thisBall.hack = 20;
+                //bounceSound.Play();
             }
 
             Block collidedBlock = null;
             foreach (Block b in blocks)
             {
-                if ((ball.position.X > (b.position.X - b.Width / 2 - radius)) &&
-                    (ball.position.X < (b.position.X + b.Width / 2 + radius)) &&
-                    (ball.position.Y > (b.position.Y - b.Height / 2 - radius)) &&
-                    (ball.position.Y < (b.position.Y + b.Height / 2 + radius)))
+                if ((thisBall.position.X > (b.position.X - b.Width / 2 - radius)) &&
+                    (thisBall.position.X < (b.position.X + b.Width / 2 + radius)) &&
+                    (thisBall.position.Y > (b.position.Y - b.Height / 2 - radius)) &&
+                    (thisBall.position.Y < (b.position.Y + b.Height / 2 + radius)))
                 {
                     collidedBlock = b;
                     break;
@@ -231,16 +291,16 @@ namespace BreakernoidsGL
             {
                 // Assume that if our Y is close to the top or bottom of the block,
                 // we're colliding with the top or bottom
-                if ((ball.position.Y <
+                if ((thisBall.position.Y <
                     (collidedBlock.position.Y - collidedBlock.Height / 2)) ||
-                    (ball.position.Y >
+                    (thisBall.position.Y >
                     (collidedBlock.position.Y + collidedBlock.Height / 2)))
                 {
-                    ball.direction.Y = -1.0f * ball.direction.Y;
+                    thisBall.direction.Y = -1.0f * thisBall.direction.Y;
                 }
                 else // otherwise, we have to be colliding from the sides
                 {
-                    ball.direction.X = -1.0f * ball.direction.X;
+                    thisBall.direction.X = -1.0f * thisBall.direction.X;
                 }
 
                 hitSound.Play();
@@ -257,39 +317,54 @@ namespace BreakernoidsGL
                 //blocks.Remove(collidedBlock);
             }
 
-            if (Math.Abs(ball.position.X - 32) < radius)
+            if (Math.Abs(thisBall.position.X - 32) < radius)
             {
                 // Left wall collision
-                ball.direction.X = -ball.direction.X;
+                thisBall.direction.X = -thisBall.direction.X;
                 bounceSound.Play();
             }
-            else if (Math.Abs(ball.position.X - 992) < radius)
+            else if (Math.Abs(thisBall.position.X - 992) < radius)
             {
                 // Right wall collision
-                ball.direction.X = -ball.direction.X;
+                thisBall.direction.X = -thisBall.direction.X;
                 bounceSound.Play();
             }
-            else if (Math.Abs(ball.position.Y - 32) < radius)
+            else if (Math.Abs(thisBall.position.Y - 32) < radius)
             {
                 // Top wall collision
-                ball.direction.Y = -ball.direction.Y;
+                thisBall.direction.Y = -thisBall.direction.Y;
                 bounceSound.Play();
             }
 
-            LoseLife();
-            
+            if (Math.Abs(thisBall.position.Y) > 768 + radius)
+            {
+                thisBall.destroy = true;
+            }
+
+            /*foreach (Ball g in balls)
+            {
+                if (Math.Abs(g.position.Y) > 768 + radius)
+                {
+                    g.destroy = true;
+                }
+            }
+
+            if (balls.Count == 0)
+            {
+                LoseLife();
+            }
+            */
+
         }
 
         void LoseLife()
         {
-            float radius = ball.Width / 2;
-            if (Math.Abs(ball.position.Y) > 768 + radius)
-            {
-                ball.position = new Vector2(512, paddle.position.Y - ball.Height - paddle.Height);
-                ball.direction = new Vector2(0.707f, -0.707f);
-                paddle.position = new Vector2(512, 740);
-                deathSound.Play();
-            }
+
+            SpawnBall();
+            paddle.Swap(false);
+            paddle.position = new Vector2(512, 740);
+            deathSound.Play();
+            
         }
 
         void SpawnPowerUp(Vector2 position)
@@ -333,8 +408,43 @@ namespace BreakernoidsGL
 
         void ActivatePowerUp(PowerUp whichPowerUp)
         {
+            if (whichPowerUp.thisType == PowerUpType.ballCatch)
+            {
+                ballCaught = true;
+            }
+            else if (whichPowerUp.thisType == PowerUpType.paddleSize)
+            {
+                //paddleBig = true;
+                //paddle.isBig = true;
+                //paddle.LoadContent();
+                paddle.Swap(true);
+            }
+            else if (whichPowerUp.thisType == PowerUpType.multiBall)
+            {
+                SpawnBall();
+            }
             whichPowerUp.destroy = true;
             powerSound.Play();
+        }
+
+        void SpawnBall()
+        {
+            Ball tempBall;
+
+            tempBall = new Ball(this);
+            tempBall.LoadContent();
+            tempBall.position = new Vector2(paddle.position.X, paddle.position.Y - tempBall.Height - paddle.Height);
+            balls.Add(tempBall);
+        }
+        void DeleteBalls()
+        {
+            for (int i = balls.Count - 1; i >= 0; i--)
+            {
+                if (balls[i].destroy == true)
+                {
+                    balls.RemoveAt(i);
+                }
+            }
         }
 
         
