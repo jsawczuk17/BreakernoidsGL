@@ -8,6 +8,8 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Audio;
+using System.IO;
+using System.Xml.Serialization;
 
 namespace BreakernoidsGL
 {
@@ -25,6 +27,7 @@ namespace BreakernoidsGL
         List<Block> blocks = new List<Block>();
         List<PowerUp> powerUps = new List<PowerUp>();
         List<Ball> balls = new List<Ball>();
+        Level level;
         
 
 
@@ -91,7 +94,7 @@ namespace BreakernoidsGL
             //ball.LoadContent();
             //ball.position = new Vector2(512, paddle.position.Y - ball.Height - paddle.Height);
 
-            for (int i = 0; i < blockLayout.GetLength(1); i++)
+            /*for (int i = 0; i < blockLayout.GetLength(1); i++)
             {
                 for (int j = 0; j < blockLayout.GetLength(0); j++)
                 {
@@ -101,6 +104,7 @@ namespace BreakernoidsGL
                     blocks.Add(tempBlock);
                 }
             }
+            */
 
             bounceSound = Content.Load<SoundEffect>("ball_bounce");
             hitSound = Content.Load<SoundEffect>("ball_hit");
@@ -436,6 +440,7 @@ namespace BreakernoidsGL
             tempBall.position = new Vector2(paddle.position.X, paddle.position.Y - tempBall.Height - paddle.Height);
             balls.Add(tempBall);
         }
+
         void DeleteBalls()
         {
             for (int i = balls.Count - 1; i >= 0; i--)
@@ -447,6 +452,27 @@ namespace BreakernoidsGL
             }
         }
 
+        protected void LoadLevel(string levelName)
+        {
+            using (FileStream fs = File.OpenRead("Levels/" + levelName))
+            {
+                XmlSerializer serializer = new XmlSerializer(typeof(Level));
+                level = (Level)serializer.Deserialize(fs);
+            }
+
+            //TO DO: Generate blocks based on the level.layout array
+            for (int i = 0; i < level.layout[i].Length; i++)
+            {
+                for (int j = 0; j < level.layout.Length; j++)
+                {
+                    Block tempBlock = new Block(this, (BlockColor)level.layout[i][j]);
+                    tempBlock.LoadContent();
+                    tempBlock.position = new Vector2(64 + i * 64, 100 + j * 32);
+                    blocks.Add(tempBlock);
+                }
+            }
+
+        }
         
     }
 }
